@@ -1,0 +1,852 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © ToTradeMethodical
+
+//@version=5
+
+
+// <<< Name >>> {
+indicator(title='KB', shorttitle='KB', overlay=true,max_labels_count=500)  //}
+
+// <<< User Inputs >>> {
+//<<< Number of Pivots >>> {
+
+cpr = input.int(title=' # of Pivots to Show ', defval=2, minval=0)
+
+
+new_bar(res) =>
+    ta.change(time(res)) != 0
+new_period(condition, src) =>
+    result = 0.0
+    result := condition ? src : result[1]
+    result  //}
+
+// <<< Daily/Weekly/Monthly/Yearly Central Pivot >>> {
+
+DP = input.bool(group='🔨 DWMY CPR 🔨', inline='1', defval=false, title='D-CPR')
+hideonDP = input(group='🔨 DWMY CPR 🔨', inline='1', defval=true, title='Hide D-CPR on Intraday and 1D+') //}
+WP = input.bool(group='🔨 DWMY CPR 🔨', inline='2', defval=false,  title='W-CPR')
+hideonWP = input(group='🔨 DWMY CPR 🔨', inline='2', defval=true, title='Hide W-CPR on 1D+') //}
+MP = input.bool(group='🔨 DWMY CPR 🔨', inline='3', defval=false,  title='M-CPR')
+hideonMP = input(group='🔨 DWMY CPR 🔨', inline='3', defval=true, title='Hide M-CPR on 1W+') //}
+YP = input.bool(group='🔨 DWMY CPR 🔨', inline='4', defval=false, title='Y-CPR')
+DCPR = input.bool(group='🔨 DWMY CPR 🔨', inline='4', defval=false, title='Dvlp CPR')
+
+MP1 = input(group='🔨 DWMY CPR 🔨', inline='4', defval=false, title='CANDLE MP')
+IB = input(group='🔨 DWMY CPR 🔨', inline='4', defval=false, title='IB')
+TBL = input.bool(group='🔨 DWMY CPR 🔨', inline='4', defval=false, title='CPR TBL')
+TBL_POS = input.string(group='🔨 DWMY CPR 🔨', inline='4', defval=position.bottom_right, title='', options=[position.bottom_right, position.bottom_left, position.bottom_center, position.top_right, position.top_left, position.top_center,position.middle_left,position.middle_right])
+
+//}
+
+// <<< Indicators >>> {
+Ichimoku = input.bool(group='🔨 IND 🔨', inline='1', defval=false, title='Ichimoku')
+BB = input.bool(group='🔨 IND 🔨', inline='1', defval=false, title='BB')
+BB_DEV = input.int(group='🔨 IND 🔨', inline='1', defval=1, title='')
+
+PP = input.bool(group='🔨 IND 🔨', inline='1', defval=true, title='Pivot Points')
+
+//}
+
+// <<< PP 1 Input >>> {
+P1_ShowPP = input.bool(group='🔨 Pivot Point A 🔨', inline='6', defval=false, title='Show Pivot Point A')
+P1_PPO = input.bool(group='🔨 Pivot Point A 🔨', inline='6', defval=true, title='Offset Next (Tomorrow\'s) Pivot', tooltip='🛑 Note = Due to Holidays or unusual opening or closing timing in market. Offseting Pivot sometimes will not give accurate result.\n\nIn this case untick this option.')
+P1_PPTF = input.string(group='🔨 Pivot Point A 🔨', inline='7', defval='Auto', title='', options=['Auto', 'D', 'W', 'M', '12M'])
+P1_PPM = input.string(group='🔨 Pivot Point A 🔨', inline='7', defval='PivotBoss', title='', options=['Expanded', 'Camarilla', 'PivotBoss' ,'Traditional', 'Fibonacci', 'Woodie', 'Classic', 'DM'])
+P1_PPT = input.string(group='🔨 Pivot Point A 🔨', inline='7', defval='Next (Tomorrow\'s)', title='', options=['Current (Today\'s)', 'Next (Tomorrow\'s)'])
+P1_PPOff = 0  // input(title="Offset", defval=0)
+
+
+P1_PP = input.bool(title='P', defval=true, inline='8')
+P1_TCBC = input.bool(title='TC/BC', defval=true, inline='8')
+P1_S1R1 = input.bool(title='S1/R1', defval=false, inline='8')
+P1_S2R2 = input.bool(title='S2/R2', defval=false, inline='8')
+P1_S3R3 = input.bool(title='S3/R3', defval=false, inline='8')
+P1_S4R4 = input.bool(title='S4/R4', defval=false, inline='8')
+P1_S5R5 = input.bool(title='S5/R5', defval=false, inline='8')
+P1_PHPL = input.bool(title='PH/PL', defval=true, inline='8')  //}
+
+// <<< VWAP >>> {
+
+VWAP = input.bool(title='VWAP', defval=true, inline='12', group='🔨 VWAP 🔨') 
+//VWAPval = input.source(title='', defval=hlc3, inline='12', group='🔨 VWAP 🔨')
+hideonDWM = input(title="Hide VWAP on 1D or Above", defval=true,inline='12', group='🔨 VWAP 🔨')//}
+
+
+
+// <<< MODIFIED PEMA CROSS OVER>>> {
+
+M_PEMA_CO = input.bool(title='M_PEMA_CO', defval=false, inline='13', group='🔨 MODIFIED PEMA CROSS OVER 🔨') //}
+M_PEMA_CO_13 = input.bool(title='M_PEMA_CO_13', defval=true, inline='14', group='🔨 MODIFIED PEMA CROSS OVER 🔨') //}
+M_PEMA_CO_35 = input.bool(title='M_PEMA_CO_35', defval=true, inline='14', group='🔨 MODIFIED PEMA CROSS OVER 🔨') //}
+M_PEMA_CO_58 = input.bool(title='M_PEMA_CO_58', defval=true, inline='14', group='🔨 MODIFIED PEMA CROSS OVER 🔨') //}
+
+// <<< MA >>> {
+
+MA = input.bool(group='🔨 MA 🔨', inline='13', defval=true, title='MA')
+
+MA1_C = input.bool(group='🔨 MA 🔨',inline='14',defval=true,title='')
+MA1 = input.string(group='🔨 MA 🔨', inline='14', defval='EMA', title='', options=['PEMA', 'EMA', 'SMA'])
+//MA1_S = input.float(group='🔨 MA 🔨', inline='14',defval=hlc3, title='', options=[hlc3, close]  )
+MA1_L = input.int(group='🔨 MA 🔨', inline='14',defval=20, minval=0, title='' )
+MA1_COL = input(group='🔨 MA 🔨', inline='14',defval=color.new(color.white,0),title='' )
+
+DMA = input.bool(group='🔨 DMA 🔨', inline='15', defval=true, title='DMA')
+
+MA2_C = input.bool(group='🔨 DMA 🔨',inline='16',defval=false,title='')
+MA2 = input.string(group='🔨 DMA 🔨', inline='16', defval='SMA', title='', options=['SMA'])
+MA2_L = input.int(group='🔨 DMA 🔨', inline='16',defval=10, minval=0, title='' )
+MA2_COL = input(group='🔨 DMA 🔨', inline='16',defval=color.new(#5db9e7,0),title='' )
+
+MA3_C = input.bool(group='🔨 DMA 🔨',inline='17',defval=true,title='')
+MA3 = input.string(group='🔨 DMA 🔨', inline='17', defval='SMA', title='', options=['SMA'])
+MA3_L = input.int(group='🔨 DMA 🔨', inline='17',defval=21, minval=0, title='' )
+MA3_COL = input(group='🔨 DMA 🔨', inline='17',defval=color.new(#ffeb3b,0),title='' )
+
+MA4_C = input.bool(group='🔨 DMA 🔨',inline='18',defval=true,title='')
+MA4 = input.string(group='🔨 DMA 🔨', inline='18', defval='EMA', title='', options=['EMA'])
+MA4_L = input.int(group='🔨 DMA 🔨', inline='18',defval=23, minval=0, title='' )
+MA4_COL = input(group='🔨 DMA 🔨', inline='18',defval=color.new(#f86000,0),title='' )
+
+MA5_C = input.bool(group='🔨 DMA 🔨',inline='19',defval=true,title='')
+MA5 = input.string(group='🔨 DMA 🔨', inline='19', defval='SMA', title='', options=['SMA'])
+MA5_L = input.int(group='🔨 DMA 🔨', inline='19',defval=50, minval=0, title='' )
+MA5_COL = input(group='🔨 DMA 🔨', inline='19',defval=color.new(#cca4f2,0),title='' )
+
+MA6_C = input.bool(group='🔨 DMA 🔨',inline='20',defval=true,title='')
+MA6 = input.string(group='🔨 DMA 🔨', inline='20', defval='EMA', title='', options=['EMA'])
+MA6_L = input.int(group='🔨 DMA 🔨', inline='20',defval=65, minval=0, title='' )
+MA6_COL = input(group='🔨 DMA 🔨', inline='20',defval=color.new(#5454ad,0),title='' )
+
+MA7_C = input.bool(group='🔨 DMA 🔨',inline='21',defval=true ,title='')
+MA7 = input.string(group='🔨 DMA 🔨', inline='21', defval='SMA', title='', options=['SMA'])
+MA7_L = input.int(group='🔨 DMA 🔨', inline='21',defval=200, minval=0, title='' )
+MA7_COL = input(group='🔨 DMA 🔨', inline='21',defval=color.new(#d00030,0),title='' )
+
+
+// <<< H/L >>> {
+//plotPDHL = input.bool(title='PD H/L', defval=false, inline='26', group='🔨 H/L 🔨')
+//plotPWHL = input.bool(title='PW H/L', defval=false, inline='26', group='🔨 H/L 🔨')
+//plotPMHL = input.bool(title='PM H/L', defval=false, inline='26', group='🔨 H/L 🔨')
+//}
+    
+// <<< Candlestick Reversal System(CRS)  >>> {
+
+CRS = input.bool(group='🔨 CRS 🔨', inline='1', defval=false, title='Candlestick Reversal System')
+
+//pivotlbar = input(defval=0, title='Length to Highest/Lowest')
+
+// Wick Reversal System
+l01 = input(true, title='Wick Reversal System')
+wick_multiplier = input.float(title='Wick Multiplier', defval=3.5, step=0.5, maxval=20)
+body_percentage = input.float(title='Body Percentage', defval=0.25, step=0.1, maxval=1)
+wbarsback = input.int(title='Bars Back', defval=50, maxval=50)
+
+// Exteme Reversal System
+l02 = input(true, title='Exteme Reversal System')
+bodysize = input.float(title='Body Size', defval=0.525, step=0.05, maxval=1)
+barsback = input.int(title='Bars Back', defval=50, maxval=50)
+bodymultiplier = input.float(title='Body Multiplier', defval=2, step=0.25, maxval=5)
+
+// outside Reversal System
+l03 = input(true, title='Outside Reversal System')
+
+BarMultiplier = input.float(title='Body Multiplier', defval=1.25, step=0.05, maxval=3.5)
+BarsBack = input.int(title='Bars Back', defval=50, maxval=250)
+
+// Doji Reversal System
+l04 = input(true, title='Doji Reversal System')
+
+percentage = input.float(title='Body Percentage', defval=0.10, step=0.1, minval=0.1)
+
+
+//}}
+
+
+// <<< Calculation of TF >>> {
+// <<< PP 1 >>> {
+PP1_Res = P1_PPTF == 'Auto' ? timeframe.period == '1' ? 'D' : timeframe.period == '3' ? 'D' : timeframe.period == '5' ? 'D' : timeframe.period == '15' ? 'D' : timeframe.period == '30' ? 'D' : timeframe.period == '45' ? 'W' : timeframe.period == '60' ? 'W' : timeframe.period == '120' ? 'W' : timeframe.period == '180' ? 'W' : timeframe.period == '240' ? 'W' : timeframe.period == 'D' ? 'M' : timeframe.period == 'W' ? '12M' : timeframe.period == 'M' ? '12M' : timeframe.period : P1_PPTF
+P1_PPOff := P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == '1' ? 375 : P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == '3' ? 125 : P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == '5' ? 75 : P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == '15' ? 25 : P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == '30' ? 12 : P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == '45' ? 45 : P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == '60' ? 35 : P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == '120' ? 20 : P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == '180' ? 15 : P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == '240' ? 10 : P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == 'D' ? 20 : P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == 'W' ? 4 : P1_PPO and P1_PPT == 'Next (Tomorrow\'s)' and timeframe.period == 'M' ? 12 : 0  //} 
+
+// <<< Creating Functions to fetch Data >>> {
+PPC_Data(Res, data) =>
+    request.security(syminfo.tickerid, Res, data[1], lookahead=barmerge.lookahead_on)
+PPN_Data(Res, data) =>
+    request.security(syminfo.tickerid, Res, data, lookahead=barmerge.lookahead_on)  //}      
+
+// <<< featching Data >>> {
+PPC1_DO = P1_PPT == 'Current (Today\'s)' ? PPC_Data(PP1_Res, open) : PPN_Data(PP1_Res, open)
+PPC1_DH = P1_PPT == 'Current (Today\'s)' ? PPC_Data(PP1_Res, high) : PPN_Data(PP1_Res, high)
+PPC1_DL = P1_PPT == 'Current (Today\'s)' ? PPC_Data(PP1_Res, low) : PPN_Data(PP1_Res, low)
+PPC1_DC = P1_PPT == 'Current (Today\'s)' ? PPC_Data(PP1_Res, close) : PPN_Data(PP1_Res, close)
+
+PPC1_PH = P1_PPT == 'Current (Today\'s)' ? PPC_Data(PP1_Res, high) : PPN_Data(PP1_Res, high)
+PPC1_PL = P1_PPT == 'Current (Today\'s)' ? PPC_Data(PP1_Res, low) : PPN_Data(PP1_Res, low)
+
+//PPC1_PH   = PPC_Data(PP1_Res,high) 
+//PPC1_PL   = PPC_Data(PP1_Res,low) 
+
+
+one_day = 1000 * 60 * 60 * 24
+one_week = one_day * 7
+one_month = one_day * 30
+
+//new_day = d_cpr > 0 and timenow - time < one_day * d_cpr and new_bar("D")
+//new_week = w_cpr > 0 and timenow - time < one_week * w_cpr and new_bar("W")
+//new_month = m_cpr > 0 and timenow - time < one_month * m_cpr and new_bar("M") 
+
+//new_day = d_cpr > 0 and timenow - time < one_day * d_cpr and new_bar(PP1_Res)
+//new_week = w_cpr > 0 and timenow - time < one_week * w_cpr and new_bar(PP1_Res)
+//new_month = m_cpr > 0 and timenow - time < one_month * m_cpr and new_bar(PP1_Res) 
+
+// Parameters to limit the number of pivots to plot
+//PPC1_CPR = PP1_Res == 'D' ? d_cpr > 0 and timenow - time < one_day * d_cpr and new_bar(PP1_Res) : PP1_Res == 'W' ? w_cpr > 0 and timenow - time < one_week * w_cpr and new_bar(PP1_Res) : PP1_Res == 'M' ? m_cpr > 0 and timenow - time < one_month * m_cpr and new_bar(PP1_Res) : na
+PPC1_CPR = PP1_Res == 'D' ? cpr > 0 and timenow - time < one_day * cpr and new_bar(PP1_Res) : PP1_Res == 'W' ? cpr > 0 and timenow - time < one_week * cpr and new_bar(PP1_Res) : PP1_Res == 'M' ? cpr > 0 and timenow - time < one_month * cpr and new_bar(PP1_Res) : na
+
+PPN1_DO = PPN_Data(PP1_Res, open)
+PPN1_DH = PPN_Data(PP1_Res, high)
+PPN1_DL = PPN_Data(PP1_Res, low)
+PPN1_DC = PPN_Data(PP1_Res, close)
+
+
+PdailyHigh = P1_PPT == 'Current (Today\'s)' ? PPC_Data('D', high) : PPN_Data('D', high[1])
+PdailyLow = P1_PPT == 'Current (Today\'s)' ? PPC_Data('D', low) : PPN_Data('D', low[1])
+
+weeklyHigh = P1_PPT == 'Current (Today\'s)' ? PPC_Data('W', high) : PPN_Data('W', high[1])
+weeklyLow = P1_PPT == 'Current (Today\'s)' ? PPC_Data('W', low) : PPN_Data('W', low[1])
+
+monthlyHigh = P1_PPT == 'Current (Today\'s)' ? PPC_Data('M', high) : PPN_Data('M', high[1])
+monthlyLow = P1_PPT == 'Current (Today\'s)' ? PPC_Data('M', low) : PPN_Data('M', low[1])
+
+yearlyHigh    = P1_PPT == "Current (Today\'s)" ? PPC_Data("12M",high) : PPN_Data("12M",high[1])
+yearlyLow     = P1_PPT == "Current (Today\'s)" ? PPC_Data("12M",low)  : PPN_Data("12M",low[1]) 
+
+DCP = P1_PPT == 'Current (Today\'s)' ? (PPC_Data('D', high) + PPC_Data('D', low) + PPC_Data('D', close)) / 3 : (PPN_Data('D', high[1]) + PPN_Data('D', low[1]) + PPN_Data('D', close[1])) / 3
+DBP = P1_PPT == 'Current (Today\'s)' ? (PPC_Data('D', high) + PPC_Data('D', low)) / 2 : (PPN_Data('D', high[1]) + PPN_Data('D', low[1])) / 2
+DTP = P1_PPT == 'Current (Today\'s)' ? DCP - DBP + DCP : DCP - DBP + DCP
+
+WCP = P1_PPT == 'Current (Today\'s)' ? (PPC_Data('W', high) + PPC_Data('W', low) + PPC_Data('W', close)) / 3 : (PPN_Data('W', high[1]) + PPN_Data('W', low[1]) + PPN_Data('W', close[1])) / 3
+WBP = P1_PPT == 'Current (Today\'s)' ? (PPC_Data('W', high) + PPC_Data('W', low)) / 2 : (PPN_Data('W', high[1]) + PPN_Data('W', low[1])) / 2
+WTP = P1_PPT == 'Current (Today\'s)' ? WCP - WBP + WCP : WCP - WBP + WCP
+
+MCP = P1_PPT == 'Current (Today\'s)' ? (PPC_Data('M', high) + PPC_Data('M', low) + PPC_Data('M', close)) / 3 : (PPN_Data('M', high[1]) + PPN_Data('M', low[1]) + PPN_Data('M', close[1])) / 3
+MBP = P1_PPT == 'Current (Today\'s)' ? (PPC_Data('M', high) + PPC_Data('M', low)) / 2 : (PPN_Data('M', high[1]) + PPN_Data('M', low[1])) / 2
+MTP = P1_PPT == 'Current (Today\'s)' ? MCP - MBP + MCP : MCP - MBP + MCP
+
+YCP = P1_PPT == 'Current (Today\'s)' ? (PPC_Data('12M', high) + PPC_Data('12M', low) + PPC_Data('12M', close)) / 3 : (PPN_Data('12M', high[1]) + PPN_Data('12M', low[1]) + PPN_Data('12M', close[1])) / 3
+YBP = P1_PPT == 'Current (Today\'s)' ? (PPC_Data('12M', high) + PPC_Data('12M', low)) / 2 : (PPN_Data('12M', high[1]) + PPN_Data('12M', low[1])) / 2
+YTP = P1_PPT == 'Current (Today\'s)' ? YCP - YBP + YCP : YCP - YBP + YCP
+
+
+float DCP_1 = na
+float DBP_1 = na
+float DTP_1 = na
+
+//if not (hideonDP and timeframe.isdwm)
+if not (hideonDP and (timeframe.isintraday or timeframe.isdwm))
+//if not (hideonDP and (timeframe.isdwm))
+
+    DCP_1 := DCP
+    DBP_1 := DBP
+    DTP_1 := DTP
+
+float WCP_1 = na
+float WBP_1 = na
+float WTP_1 = na
+
+if not (hideonWP and timeframe.isdwm)
+//if not (hideonWP and timeframe.isweekly)
+
+    WCP_1 := WCP
+    WBP_1 := WBP
+    WTP_1 := WTP
+
+float MCP_1 = na
+float MBP_1 = na
+float MTP_1 = na
+
+if not (hideonMP and (timeframe.isweekly or timeframe.ismonthly))
+
+    MCP_1 := MCP
+    MBP_1 := MBP
+    MTP_1 := MTP
+
+    
+// <<< CPR Width >>> {
+
+
+CP_CURR = (PPC_Data(PP1_Res, high) + PPC_Data(PP1_Res, low) + PPC_Data(PP1_Res, close)) / 3 
+BP_CURR = (PPC_Data(PP1_Res, high) + PPC_Data(PP1_Res, low)) / 2 
+TP_CURR = CP_CURR - BP_CURR + CP_CURR 
+
+
+CP_DEVL = (PPN_Data(PP1_Res, high) + PPN_Data(PP1_Res, low) + PPN_Data(PP1_Res, close)) / 3
+BP_DEVL = (PPN_Data(PP1_Res, high) + PPN_Data(PP1_Res, low)) / 2
+TP_DEVL = CP_DEVL - BP_DEVL + CP_DEVL
+
+
+PP1_CPR_W_CURR = math.abs(TP_CURR - BP_CURR) / CP_CURR * 100 
+PP1_CPR_W_DEVL = math.abs(TP_DEVL - BP_DEVL) / CP_DEVL * 100 
+
+
+
+PP1_CPR_W_CURR_DESC = PP1_CPR_W_CURR < 0.25 ? 'Higher chances of Trending Day' : 
+         PP1_CPR_W_CURR >= 0.25 and PP1_CPR_W_CURR < 0.5 ? 'Possible Trending Day' :
+         PP1_CPR_W_CURR >= 0.5  and PP1_CPR_W_CURR < 0.75 ? 'Sideways to Trading Range Day' : 
+         'Sideways'
+
+PP1_CPR_W_DEVL_DESC = PP1_CPR_W_DEVL < 0.25 ? 'Higher chances of Trending Day' : 
+         PP1_CPR_W_DEVL >= 0.25 and PP1_CPR_W_DEVL < 0.5 ? 'Possible Trending Day' :
+         PP1_CPR_W_DEVL >= 0.5  and PP1_CPR_W_DEVL < 0.75 ? 'Sideways to Trading Range Day' : 
+         'Sideways'
+         
+PP1_CPR_W_CURR_COL = PP1_CPR_W_CURR < 0.25 ? color.green : 
+         PP1_CPR_W_CURR >= 0.25 and PP1_CPR_W_CURR < 0.5 ? #c5e7cc : 
+         PP1_CPR_W_CURR >= 0.5 and PP1_CPR_W_CURR < 0.75 ? color.orange : 
+         color.white
+         
+PP1_CPR_W_DEVL_COL = PP1_CPR_W_DEVL < 0.25 ? color.green : 
+         PP1_CPR_W_DEVL >= 0.25 and PP1_CPR_W_DEVL < 0.5 ? #c5e7cc : 
+         PP1_CPR_W_DEVL >= 0.5 and PP1_CPR_W_DEVL < 0.75 ? color.orange : 
+         color.white
+
+
+         
+//}
+
+
+
+
+//MA caluculations
+
+//request.security(syminfo.tickerid, 'D', ta.ema(hlc3,MA4_L))
+//request.security(syminfo.tickerid, 'D', ta.ema(close,MA4_L))
+//request.security(syminfo.tickerid, 'D', ta.sma(close,MA4_L))
+
+
+MA1_CAL = MA1 == 'PEMA' ? ta.ema(hlc3,MA1_L) : MA1 == 'EMA' ? ta.ema(close,MA1_L) : MA1 == 'SMA' ? ta.sma(close,MA1_L) : na
+MA2_CAL = MA2 == 'SMA' ? request.security(syminfo.tickerid, 'D', ta.sma(close,MA2_L)) : na
+MA3_CAL = MA3 == 'SMA' ? request.security(syminfo.tickerid, 'D', ta.sma(close,MA3_L)) : na
+MA4_CAL = MA4 == 'EMA' ? request.security(syminfo.tickerid, 'D', ta.ema(close,MA4_L)) : na
+MA5_CAL = MA5 == 'SMA' ? request.security(syminfo.tickerid, 'D', ta.sma(close,MA5_L)) : na
+MA6_CAL = MA6 == 'EMA' ? request.security(syminfo.tickerid, 'D', ta.ema(close,MA6_L)) : na
+MA7_CAL = MA7 == 'SMA' ? request.security(syminfo.tickerid, 'D', ta.sma(close,MA7_L)) : na
+//MA7_CAL =20000
+
+
+//Initial Balance
+
+//is_newbar(res) =>
+  //  ta.change(time(res)) != 0
+
+//adopt(r, s) =>
+  //  request.security(syminfo.tickerid, r, s, lookahead=barmerge.lookahead_on)
+
+//IBH = request.security(syminfo.tickerid, '60', high[0], lookahead=barmerge.lookahead_on)
+//IBL = request.security(syminfo.tickerid, '60', low[0], lookahead=barmerge.lookahead_on)
+
+//var float orbH = na
+//var float orbL = na
+//if is_newbar('D')
+  //  orbH := IBH
+   // orbL := IBL
+    //orbL
+
+
+//plot(series=IB ? new_period(PPC1_CPR,orbH) : na, title ='IBH', color=color.new(color.silver, 70), style=plot.style_circles, linewidth=1)
+//plot(series=IB ? new_period(PPC1_CPR,orbL) : na, title ='IBL', color=color.new(color.silver, 70), style=plot.style_circles, linewidth=1)
+
+//plot(series=P1_ShowPP and P1_TCBC ? new_period(PPC1_CPR, PP1_TC) : na, title=' A TC', style=plot.style_circles, linewidth=1, color=color.new(#6050DC, 30), offset=P1_PPOff)
+
+//plot(series=MP1 ? hl2 : na, title ='Mid Point', color=color.new(color.white, 80), style=plot.style_circles)
+
+//Candlestick Reversal Setup
+
+//highleftempty = ta.pivothigh(pivotlbar, 0)
+//lowleftempty = ta.pivotlow(pivotlbar, 0)
+
+// Wick Reversal System
+
+O = open
+C = close
+H = high
+L = low
+
+//mid_range = current_low + (current_high - current_low) / 2
+//M = L + (H-L) / 2
+
+Wlongsignal = C > O and O - L >= (C - O) * wick_multiplier and H - C <= (H - L) * body_percentage or C < O and C - L >= (O - C) * wick_multiplier and H - C <= (H - L) * body_percentage or C == O and C != H and H - L >= (H - C) * wick_multiplier and H - C <= (H - L) * body_percentage or O == H and C == H and H - L >= ta.sma(H - L, wbarsback)
+Wshortsignal = C < O and H - O >= (O - C) * wick_multiplier and C - L <= (H - L) * body_percentage or C > O and H - C >= (C - O) * wick_multiplier and C - L <= (H - L) * body_percentage or C == O and C != L and H - L >= (C - L) * wick_multiplier and C - L <= (H - L) * body_percentage or O == L and C == L and H - L >= ta.sma(H - L, wbarsback)
+
+
+// Exteme Reversal System
+
+mybodysize = math.abs(C - O)
+AverageBody = ta.sma(mybodysize, barsback)
+mycandlesize = H - L
+AverageCandle = ta.sma(mycandlesize, barsback)
+
+Elongsignal = O[1] - C[1] >= bodysize * (H[1] - L[1]) and H[1] - L[1] > AverageCandle * bodymultiplier and O[1] - C[1] > AverageBody and C > O
+Eshortsignal = C[1] - O[1] >= bodysize * (H[1] - L[1]) and H[1] - L[1] > AverageCandle * bodymultiplier and C[1] - O[1] > AverageBody and O > C
+
+// outside Reversal System
+
+AverageCandle1 = ta.sma(mycandlesize, BarsBack)
+
+Olongsignal = L < L[1] and C > H[1] and H - L >= AverageCandle1 * BarMultiplier
+Oshortsignal = H > H[1] and C < L[1] and H - L >= AverageCandle1 * BarMultiplier
+
+// Doji Reversal System
+
+frangehl = H[1] - L[1]
+frangeco = math.abs(C[1] - O[1])
+sma10 = ta.sma(close, 10)
+
+//original code by LonesomeTheBlue
+Dshortsignal = frangeco <= frangehl * percentage and C < L[1] and L[1] > sma10 and C < O or C < L[2] and C[1] >= L[2] and frangeco <= frangeco * percentage and C < O and L[2] > sma10
+Dlongsignal = frangeco <= frangehl * percentage and C > H[1] and H[1] < sma10 and C > O or C > H[2] and C[1] <= H[2] and frangeco <= frangeco * percentage and C > O and H[2] < sma10
+
+//Updated the code to match with the formula given in the Secrets of Pivot Boss Book by kalyan Bhuma
+//Dshortsignal = frangeco <= frangehl * percentage and C < L[1] and L[1] > sma10 and C < O or C < L[2] and C[1] >= L[2] and frangeco[1] <= frangehl[1] * percentage and C < O and L[2] > sma10
+//Dlongsignal = frangeco <= frangehl * percentage and C > H[1] and H[1] < sma10 and C > O or C > H[2] and C[1] <= H[2] and frangeco[1] <= frangehl[1] * percentage and C > O and H[2] < sma10
+
+
+//longsignal = lowleftempty and ((l01 and Wlongsignal) or (l02 and Elongsignal) or (l03 and Olongsignal) or (l04 and Dlongsignal))
+//shortsignal = highleftempty and ((l01 and Wshortsignal) or (l02 and Eshortsignal) or (l03 and Oshortsignal) or (l04 and Dshortsignal))
+
+longsignal  = ((l01 and Wlongsignal) or (l02 and Elongsignal) or (l03 and Olongsignal) or (l04 and Dlongsignal))
+shortsignal = ((l01 and Wshortsignal) or (l02 and Eshortsignal) or (l03 and Oshortsignal) or (l04 and Dshortsignal))
+
+//Modified PEMA Crossover System
+
+PEMA_1 = ta.ema(hlc3, 1)
+PEMA_3 = ta.ema(hlc3, 3)
+PEMA_5 = ta.ema(hlc3, 5)
+PEMA_8 = ta.ema(hlc3, 8)
+PEMA_21 = ta.ema(hlc3, 21)
+EMA_5 = ta.ema(close,5)
+
+
+PEMA13_LongSignal  = PEMA_1[1] < PEMA_3[1] and PEMA_1 > PEMA_3 and L > PEMA_21
+PEMA13_ShortSignal = PEMA_1[1] > PEMA_3[1] and PEMA_1 < PEMA_3 and H < PEMA_21
+
+
+PEMA35_LongSignal  = PEMA_3[1] < PEMA_5[1] and PEMA_3 > PEMA_5 and L > PEMA_21
+PEMA35_ShortSignal = PEMA_3[1] > PEMA_5[1] and PEMA_3 < PEMA_5 and H < PEMA_21
+
+
+PEMA58_LongSignal  = PEMA_5[1] < PEMA_8[1] and PEMA_5 > PEMA_8 and L > PEMA_21
+PEMA58_ShortSignal = PEMA_5[1] > PEMA_8[1] and PEMA_5 < PEMA_8 and H < PEMA_21
+
+//Developing CPR
+
+computeDevCPR(isNewPeriod) =>
+    var float h = na
+    var float l = na
+    c = close
+
+    h := isNewPeriod or high > h ? high : h[1]
+    l := isNewPeriod or low < l ? low : l[1]
+
+    pivot = (h + l + c) / 3.0
+    bc = (h + l) / 2.0
+    tc = pivot - bc + pivot
+
+    [pivot, tc, bc]
+
+timeChange(timeframe) =>
+    ta.change(time(timeframe))
+
+//var anchor = input.string(defval='Session', title='Anchor Period', options=['Session', 'Week', 'Month', 'Quarter', 'Year'])
+//isNewPeriod = anchor == 'Session' ? timeChange('D') : anchor == 'Week' ? timeChange('W') : anchor == 'Month' ? timeChange('M') : anchor == 'Quarter' ? timeChange('3M') : anchor == 'Year' ? timeChange('12M') : false
+
+isNewPeriod = timeframe.period == '1' ? timeChange('D') : timeframe.period == '3' ? timeChange('D') : timeframe.period == '5' ? timeChange('D') : timeframe.period == '15' ? timeChange('D') : timeframe.period == '30' ? timeChange('D') : timeframe.period == '45' ? timeChange('W') : timeframe.period == '60' ? timeChange('W') : timeframe.period == '120' ? timeChange('W') : timeframe.period == '180' ? timeChange('W') : timeframe.period == '240' ? timeChange('W') : timeframe.period == 'D' ? timeChange('M') : timeframe.period == 'W' ? timeChange('12M') : timeframe.period == 'M' ? timeChange('12M') : false
+
+
+//PP1_Res = P1_PPTF == 'Auto' ? timeframe.period == '1' ? 'D' : timeframe.period == '3' ? 'D' : timeframe.period == '5' ? 'D' : timeframe.period == '15' ? 'D' : timeframe.period == '30' ? 'D' : timeframe.period == '45' ? 'W' : timeframe.period == '60' ? 'W' : timeframe.period == '120' ? 'W' : timeframe.period == '180' ? 'W' : timeframe.period == '240' ? 'W' : timeframe.period == 'D' ? 'M' : timeframe.period == 'W' ? '12M' : timeframe.period == 'M' ? '12M' : timeframe.period : P1_PPTF
+
+[pivot, tc, bc] = computeDevCPR(isNewPeriod)
+
+
+//green: A5D6A7 : color.rgb(165,214,167,90)
+//red:   EF9A9A : color.rgb(239,154,15,90)
+
+pcolor = bc > tc ? #EF9A9A : #A5D6A7
+
+plot(DCPR ? pivot : na , title='Developing PP', style=plot.style_line, color=color.new(color.gray,0), linewidth=2)
+bcplot = plot(DCPR ? bc : na, title='Developing BC', style=plot.style_line, color=color.new(#EF9A9A, 0), linewidth=1)
+tcplot = plot(DCPR ? tc : na, title='Developing TC', style=plot.style_line, color=color.new(#A5D6A7, 0), linewidth=1)
+//fill(plot1=tcplot, plot2=bcplot, color= bc > tc ? color.rgb(239,154,15,90) : color.rgb(165,214,167,90))
+fill(plot1=tcplot, plot2=bcplot, color= bc > tc ? color.rgb(247,123,114,90) : color.rgb(165,214,167,90))
+
+//vwap
+
+vwapValue1 = ta.vwap(hlc3)
+VWAPval_1 = ta.vwap(hlc3)
+float vwapValue = na
+
+if not (hideonDWM and timeframe.isdwm)
+//    [_vwap, bottom, top] = computeVWAP(src, isNewPeriod, stdevMult)
+    vwapValue := VWAPval_1
+    
+//vwap and PEMA_21 table and cloud
+
+ticker_LTP = request.security(syminfo.tickerid, "D", close)
+
+PP1_VWAP = vwapValue1 > ticker_LTP ? 'Price Below VWAP' : 'Price Above VWAP'
+PP1_VWAP_COL = vwapValue1 > ticker_LTP ? color.orange : color.green
+
+PP1_PEMA_21 = PEMA_21 > ticker_LTP ? 'Price Below PEMA 21' : 'Price Above PEMA 21'
+PP1_PEMA_21_COL = PEMA_21 > ticker_LTP ? color.orange : color.green
+
+PP1_MA1_CAL = MA1_CAL > ticker_LTP ? 'Price Below EMA 20' : 'Price Above EMA 20'
+PP1_MA1_CAL_COL = MA1_CAL > ticker_LTP ? color.orange : color.green
+
+PP1_MA2_CAL = MA2_CAL > ticker_LTP ? 'Price Below DSMA 10' : 'Price Above DSMA 10'
+PP1_MA2_CAL_COL = MA2_CAL > ticker_LTP ? color.orange : color.green
+
+PP1_MA3_CAL = MA3_CAL > ticker_LTP ? 'Price Below DSMA 21' : 'Price Above DSMA 21'
+PP1_MA3_CAL_COL = MA3_CAL > ticker_LTP ? color.orange : color.green
+
+PP1_MA4_CAL = MA4_CAL > ticker_LTP ? 'Price Below DEMA 23' : 'Price Above DEMA 23'
+PP1_MA4_CAL_COL = MA4_CAL > ticker_LTP ? color.orange : color.green
+
+PP1_MA5_CAL = MA5_CAL > ticker_LTP ? 'Price Below DSMA 50' : 'Price Above DSMA 50'
+PP1_MA5_CAL_COL = MA5_CAL > ticker_LTP ? color.orange : color.green
+
+PP1_MA6_CAL = MA6_CAL > ticker_LTP ? 'Price Below DEMA 65' : 'Price Above DEMA 65'
+PP1_MA6_CAL_COL = MA6_CAL > ticker_LTP ? color.orange : color.green
+
+PP1_MA7_CAL = MA7_CAL > ticker_LTP ? 'Price Below DSMA 200' : 'Price Above DSMA 200'
+PP1_MA7_CAL_COL = MA7_CAL > ticker_LTP ? color.orange : color.green
+
+//PP1_CLOUD_VAL = ticker_LTP < tc ?  tc : ticker_LTP > bc ? bc : pivot
+//PP1_CLOUD    = ticker_LTP < bc ?  'Sell CE' : ticker_LTP > tc ? 'Sell PE' : 'ND'
+//PP1_CLOUD_COL = ticker_LTP < bc ?  color.red  : ticker_LTP > tc ? color.green  : color.white
+
+PP1_TC_COL = ticker_LTP < tc ?     color.orange  : ticker_LTP > tc ?    color.green  : color.white
+PP1_PI_COL = ticker_LTP < pivot ?  color.orange  : ticker_LTP > pivot ? color.green  : color.white
+PP1_BC_COL = ticker_LTP < bc ?     color.orange  : ticker_LTP > bc ?    color.green  : color.white
+
+PP1_TC_S = ticker_LTP > tc  ? 'Price Above TCP' : 'Price Below TCP'
+PP1_PI_S = ticker_LTP > pivot  ? 'Price Above PIVOT' : 'Price Below PIVOT'
+PP1_BC_S= ticker_LTP > bc  ? 'Price Above BCP' : 'Price Below BCP'
+
+
+//PP1_CLOUD_VAL = ticker_LTP < tc  and ticker_LTP < vwapValue1 and ticker_LTP < PEMA_21 ?  tc : ticker_LTP > bc  and ticker_LTP > vwapValue1 and ticker_LTP > PEMA_21 ?  bc : pivot
+//PP1_CLOUD    = ticker_LTP < tc  and ticker_LTP < vwapValue1 and ticker_LTP < PEMA_21 ?  'Sell CE' : ticker_LTP > bc  and ticker_LTP > vwapValue1 and ticker_LTP > PEMA_21 ?  'Sell PE' : 'No Direction Trade'
+//PP1_CLOUD_COL = ticker_LTP < tc  and ticker_LTP < vwapValue1 and ticker_LTP < PEMA_21 ?  color.orange : ticker_LTP > bc  and ticker_LTP > vwapValue1 and ticker_LTP > PEMA_21 ?  color.green : color.white
+
+PP1_SIGNAL_VAL = ticker_LTP < tc  and ticker_LTP < vwapValue1 and ticker_LTP < PEMA_21 ?  tc : ticker_LTP > tc  and ticker_LTP > vwapValue1 and ticker_LTP > PEMA_21 ?  bc : pivot
+PP1_SIGNAL    = ticker_LTP < tc  and ticker_LTP < vwapValue1 and ticker_LTP < PEMA_21 ?  'Sell CE' : ticker_LTP > tc  and ticker_LTP > vwapValue1 and ticker_LTP > PEMA_21 ?  'Sell PE' : 'No Direction Trade'
+PP1_SIGNAL_COL = ticker_LTP < tc  and ticker_LTP < vwapValue1 and ticker_LTP < PEMA_21 ?  color.orange : ticker_LTP > tc  and ticker_LTP > vwapValue1 and ticker_LTP > PEMA_21 ?  color.green : color.white
+
+//}    
+
+// <<< PP Calculation >>> {
+// <<< Helper >>> {
+DDX1 = PPC1_DC < PPC1_DO ? PPC1_DH + 2 * PPC1_DL + PPC1_DC : PPC1_DC > PPC1_DO ? 2 * PPC1_DH + PPC1_DL + PPC1_DC : PPC1_DH + PPC1_DL + 2 * PPC1_DC
+//}
+// <<< PP >>> {
+PP1_PP = P1_PPM == 'Traditional' ? (PPC1_DH + PPC1_DL + PPC1_DC) / 3 : P1_PPM == 'PivotBoss' ? (PPC1_DH + PPC1_DL + PPC1_DC) / 3 : P1_PPM == 'Expanded' ? (PPC1_DH + PPC1_DL + PPC1_DC) / 3 : P1_PPM == 'Fibonacci' ? (PPC1_DH + PPC1_DL + PPC1_DC) / 3 : P1_PPM == 'Woodie' ? (PPC1_DH + PPC1_DL + PPN1_DO * 2) / 4 : P1_PPM == 'Classic' ? (PPC1_DH + PPC1_DL + PPC1_DC) / 3 : P1_PPM == 'Camarilla' ? (PPC1_DH + PPC1_DL + PPC1_DC) / 3 : P1_PPM == 'DM' ? DDX1 / 4 : na //}
+// <<< BC >>> {
+PP1_BC = P1_PPM == 'Traditional' ? (PPC1_DH + PPC1_DL) / 2 : P1_PPM == 'PivotBoss' ? (PPC1_DH + PPC1_DL) / 2 : P1_PPM == 'Expanded' ? (PPC1_DH + PPC1_DL) / 2 : P1_PPM == 'Fibonacci' ? (PPC1_DH + PPC1_DL) / 2 : P1_PPM == 'Woodie' ? (PPC1_DH + PPC1_DL) / 2 : P1_PPM == 'Classic' ? (PPC1_DH + PPC1_DL) / 2 : P1_PPM == 'Camarilla' ? (PPC1_DH + PPC1_DL) / 2 : P1_PPM == 'DM' ? (PPC1_DH + PPC1_DL) / 2 : na  //}
+// <<< TC >>> {
+PP1_TC = P1_PPM == 'Traditional' ? PP1_PP - PP1_BC + PP1_PP : P1_PPM == 'PivotBoss' ? PP1_PP - PP1_BC + PP1_PP : P1_PPM == 'Expanded' ? PP1_PP - PP1_BC + PP1_PP : P1_PPM == 'Fibonacci' ? PP1_PP - PP1_BC + PP1_PP : P1_PPM == 'Woodie' ? PP1_PP - PP1_BC + PP1_PP : P1_PPM == 'Classic' ? PP1_PP - PP1_BC + PP1_PP : P1_PPM == 'Camarilla' ? PP1_PP - PP1_BC + PP1_PP : P1_PPM == 'DM' ? PP1_PP - PP1_BC + PP1_PP : na  //}
+
+
+// <<< H1 >>> {
+PP1_H1 = P1_PPM == 'Traditional' ? PP1_PP * 2 - PPC1_DL : P1_PPM == 'PivotBoss' ? PPC1_DH + (PPC1_DH - PPC1_DL) * 0.25  : P1_PPM == 'Expanded' ? PP1_PP * 2 - PPC1_DL : P1_PPM == 'Fibonacci' ? PP1_PP + (PPC1_DH - PPC1_DL) * 0.382 : P1_PPM == 'Woodie' ? PP1_PP * 2 - PPC1_DL : P1_PPM == 'Classic' ? PP1_PP * 2 - PPC1_DL : P1_PPM == 'Camarilla' ? PPC1_DC + (PPC1_DH - PPC1_DL) * 1.1 / 12 : P1_PPM == 'DM' ? DDX1 / 2 - PPC1_DL : na   //}
+// <<< L1 >>> {
+PP1_L1 = P1_PPM == 'Traditional' ? PP1_PP * 2 - PPC1_DH : P1_PPM == 'PivotBoss' ? PPC1_DL - (PPC1_DH - PPC1_DL) * 0.25 : P1_PPM == 'Expanded' ? PP1_PP * 2 - PPC1_DH : P1_PPM == 'Fibonacci' ? PP1_PP - (PPC1_DH - PPC1_DL) * 0.382 : P1_PPM == 'Woodie' ? PP1_PP * 2 - PPC1_DH : P1_PPM == 'Classic' ? PP1_PP * 2 - PPC1_DH : P1_PPM == 'Camarilla' ? PPC1_DC - (PPC1_DH - PPC1_DL) * 1.1 / 12 : P1_PPM == 'DM' ? DDX1 / 2 - PPC1_DH : na  //}
+// <<< H2 >>> {
+PP1_H2 = P1_PPM == 'Traditional' ? PP1_PP + PPC1_DH - PPC1_DL : P1_PPM == 'PivotBoss' ? PPC1_DH + (PPC1_DH - PPC1_DL) * 0.50 : P1_PPM == 'Expanded' ? PP1_PP + PPC1_DH - PPC1_DL : P1_PPM == 'Fibonacci' ? PP1_PP + (PPC1_DH - PPC1_DL) * 0.618 : P1_PPM == 'Woodie' ? PP1_PP + PPC1_DH - PPC1_DL : P1_PPM == 'Classic' ? PP1_PP + PP1_H1 - PP1_L1 : P1_PPM == 'Camarilla' ? PPC1_DC + (PPC1_DH - PPC1_DL) * 1.1 / 6 : na //}        
+// <<< L2 >>> {
+PP1_L2 = P1_PPM == 'Traditional' ? PP1_PP - (PPC1_DH - PPC1_DL) : P1_PPM == 'PivotBoss' ? PPC1_DL - (PPC1_DH - PPC1_DL) * 0.50 : P1_PPM == 'Expanded' ? PP1_PP - (PPC1_DH - PPC1_DL) : P1_PPM == 'Fibonacci' ? PP1_PP - (PPC1_DH - PPC1_DL) * 0.618 : P1_PPM == 'Woodie' ? PP1_PP - PPC1_DH + PPC1_DL : P1_PPM == 'Classic' ? PP1_PP - PP1_H1 + PP1_L1 : P1_PPM == 'Camarilla' ? PPC1_DC - (PPC1_DH - PPC1_DL) * 1.1 / 6 : na  //}
+// <<< H3 >>> {
+PP1_H3 = P1_PPM == 'Traditional' ? PP1_H1 + PPC1_DH - PPC1_DL : P1_PPM == 'PivotBoss' ? PPC1_DH + (PPC1_DH - PPC1_DL) * 0.75 : P1_PPM == 'Expanded' ? PP1_H1 + PPC1_DH - PPC1_DL : P1_PPM == 'Fibonacci' ? PP1_PP + (PPC1_DH - PPC1_DL) * 1.000 : P1_PPM == 'Woodie' ? PPC1_DH + 2 * (PP1_PP - PPC1_DL) : P1_PPM == 'Classic' ? PP1_PP + 2 * (PP1_H1 - PP1_L1) : P1_PPM == 'Camarilla' ? PPC1_DC + (PPC1_DH - PPC1_DL) * 1.1 / 4 : na //}
+// <<< L3 >>> {
+PP1_L3 = P1_PPM == 'Traditional' ? PP1_L1 - (PPC1_DH - PPC1_DL) : P1_PPM == 'PivotBoss' ? PPC1_DL - (PPC1_DH - PPC1_DL) * 0.75 : P1_PPM == 'Expanded' ? PP1_L1 - (PPC1_DH - PPC1_DL) : P1_PPM == 'Fibonacci' ? PP1_PP - (PPC1_DH - PPC1_DL) * 1.000 : P1_PPM == 'Woodie' ? PPC1_DL - 2 * (PPC1_DH - PP1_PP) : P1_PPM == 'Classic' ? PP1_PP - 2 * (PPC1_DH - PPC1_DL) : P1_PPM == 'Camarilla' ? PPC1_DC - (PPC1_DH - PPC1_DL) * 1.1 / 4 : na //}
+// <<< H4 >>> {
+PP1_H4 = P1_PPM == 'Traditional' ? PP1_PP * 3 + PPC1_DH - 3 * PPC1_DL : P1_PPM == 'PivotBoss' ? PPC1_DH + (PPC1_DH - PPC1_DL) : P1_PPM == 'Expanded' ? PP1_H3 + PP1_H2 - PP1_H1 : P1_PPM == 'Woodie' ? PP1_H3 + PPC1_DH - PPC1_DL : P1_PPM == 'Classic' ? PP1_PP + 3 * (PPC1_DH - PPC1_DL) : P1_PPM == 'Camarilla' ? PPC1_DC + (PPC1_DH - PPC1_DL) * 1.1 / 2 : na  //}
+// <<< L4 >>> {
+PP1_L4 = P1_PPM == 'Traditional' ? PP1_PP * 3 - (3 * PPC1_DH - PPC1_DL) : P1_PPM == 'PivotBoss' ? PPC1_DL - (PPC1_DH - PPC1_DL)  : P1_PPM == 'Expanded' ? PP1_L3 + PP1_L2 - PP1_L1 : P1_PPM == 'Woodie' ? PP1_L3 - (PPC1_DH - PPC1_DL) : P1_PPM == 'Classic' ? PP1_PP - 3 * (PPC1_DH - PPC1_DL) : P1_PPM == 'Camarilla' ? PPC1_DC - (PPC1_DH - PPC1_DL) * 1.1 / 2 : na //}         
+// <<< H5 >>> {
+PP1_H5 = P1_PPM == 'Traditional' ? PP1_PP * 4 + PPC1_DH - 4 * PPC1_DL : P1_PPM == 'PivotBoss' ? PPC1_DH + (PPC1_DH - PPC1_DL) * 1.25 : P1_PPM == 'Camarilla' ? PPC1_DC * (PPC1_DH / PPC1_DL) : na  //} 
+// <<< L5 >>> {
+PP1_L5 = P1_PPM == 'Traditional' ? PP1_PP * 4 - (4 * PPC1_DH - PPC1_DL) : P1_PPM == 'PivotBoss' ? PPC1_DL - (PPC1_DH - PPC1_DL) * 1.25 : P1_PPM == 'Camarilla' ? PPC1_DC - (PP1_H5 - PPC1_DC) : na  //}}
+
+
+// <<< Plotting  >>> {
+// <<< Plotting PP A >>> 
+
+plot(series=P1_ShowPP and P1_TCBC ? new_period(PPC1_CPR, PP1_TC) : na, title=' A TC', style=plot.style_circles, linewidth=1, color=color.new(#5db9e7, 40), offset=P1_PPOff)
+plot(series=P1_ShowPP and P1_PP   ? new_period(PPC1_CPR, PP1_PP) : na, title=' A PP', style=plot.style_circles, linewidth=1, color=color.new(#5db9e7, 40), offset=P1_PPOff)
+plot(series=P1_ShowPP and P1_TCBC ? new_period(PPC1_CPR, PP1_BC) : na, title=' A BC', style=plot.style_circles, linewidth=1, color=color.new(#5db9e7, 40), offset=P1_PPOff)
+
+plot(series=P1_ShowPP and P1_S1R1 ? new_period(PPC1_CPR, PP1_H1) : na, title=' A R1', style=plot.style_circles, linewidth=1, color=color.new(#4caf50, 60), offset=P1_PPOff)
+plot(series=P1_ShowPP and P1_S2R2 ? new_period(PPC1_CPR, PP1_H2) : na, title=' A R2', style=plot.style_circles, linewidth=1, color=color.new(#4caf50, 60), offset=P1_PPOff)
+plot(series=P1_ShowPP and P1_S3R3 ? new_period(PPC1_CPR, PP1_H3) : na, title=' A R3', style=plot.style_circles, linewidth=1, color=color.new(#4caf50, 60), offset=P1_PPOff)
+plot(series=P1_ShowPP and P1_S4R4 ? new_period(PPC1_CPR, PP1_H4) : na, title=' A R4', style=plot.style_circles, linewidth=1, color=color.new(#4caf50, 60), offset=P1_PPOff)
+plot(series=P1_ShowPP and P1_S5R5 ? new_period(PPC1_CPR, PP1_H5) : na, title=' A R5', style=plot.style_circles, linewidth=1, color=color.new(#4caf50, 60), offset=P1_PPOff)
+
+plot(series=P1_ShowPP and P1_S1R1 ? new_period(PPC1_CPR, PP1_L1) : na, title=' A S1', style=plot.style_circles, linewidth=1, color=color.new(#FF5252, 60), offset=P1_PPOff)
+plot(series=P1_ShowPP and P1_S2R2 ? new_period(PPC1_CPR, PP1_L2) : na, title=' A S2', style=plot.style_circles, linewidth=1, color=color.new(#FF5252, 60), offset=P1_PPOff)
+plot(series=P1_ShowPP and P1_S3R3 ? new_period(PPC1_CPR, PP1_L3) : na, title=' A S3', style=plot.style_circles, linewidth=1, color=color.new(#FF5252, 60), offset=P1_PPOff)
+plot(series=P1_ShowPP and P1_S4R4 ? new_period(PPC1_CPR, PP1_L4) : na, title=' A S4', style=plot.style_circles, linewidth=1, color=color.new(#FF5252, 60), offset=P1_PPOff)
+plot(series=P1_ShowPP and P1_S5R5 ? new_period(PPC1_CPR, PP1_L5) : na, title=' A S5', style=plot.style_circles, linewidth=1, color=color.new(#FF5252, 60), offset=P1_PPOff)
+
+plot(series=P1_ShowPP and P1_PHPL ? new_period(PPC1_CPR, PPC1_PH) : na, title=' A PH', style=plot.style_circles, linewidth=2, color=color.new(#363a45, 0), offset=P1_PPOff)
+plot(series=P1_ShowPP and P1_PHPL ? new_period(PPC1_CPR, PPC1_PL) : na, title=' A PL', style=plot.style_circles, linewidth=2, color=color.new(#363a45, 0), offset=P1_PPOff)  
+
+
+
+
+// <<< Plotting Prev H/L >>>      
+
+
+//plot(plotPDHL ? PdailyHigh : na, title=' PDH', style=plot.style_line, linewidth=1, color = PdailyHigh != PdailyHigh[1] ? na : color.new(#FFB300, 50), editable=true)
+//plot(plotPDHL ? PdailyLow : na, title=' PDL', style=plot.style_line, linewidth=1, color  = PdailyLow  != PdailyLow[1]  ? na : color.new(#FFB300, 50), editable=true)
+//plot(plotPWHL ? weeklyHigh : na, title=' PWH', style=plot.style_line, linewidth=1, color = weeklyHigh != weeklyHigh[1] ? na : color.new(#FFB300, 50), editable=true)
+//plot(plotPWHL ? weeklyLow : na, title=' PWL', style=plot.style_line, linewidth=1, color  = weeklyLow  != weeklyLow[1]  ? na : color.new(#FFB300, 50), editable=true)
+//plot(plotPMHL ? monthlyHigh : na, title=' PMH', style=plot.style_line, linewidth=1, color = monthlyHigh != monthlyHigh[1] ? na : color.new(#00FFEF, 50), editable=true)
+//plot(plotPMHL ? monthlyLow : na, title=' PML', style=plot.style_line, linewidth=1, color = monthlyLow != monthlyLow[1] ? na : color.new(#00FFEF, 50), editable=true)  
+
+//Commented to give rool to mid point and Initial Balance
+//plot(plotPDHL ? PdailyHigh : na, title=' PDH', style=plot.style_cross, linewidth=2, color=color.new(color.white, 50), editable=true)
+//plot(plotPDHL ? PdailyLow : na, title=' PDL', style=plot.style_cross, linewidth=2, color=color.new(color.white, 50), editable=true)
+//plot(plotPWHL ? weeklyHigh : na, title=' PWH', style=plot.style_cross, linewidth=2, color=color.new(#FFB300, 50), editable=true)
+//plot(plotPWHL ? weeklyLow : na, title=' PWL', style=plot.style_cross, linewidth=2, color=color.new(#FFB300, 50), editable=true)
+//plot(plotPMHL ? monthlyHigh : na, title=' PMH', style=plot.style_cross, linewidth=2, color=color.new(#C3A3D5, 50), editable=true)
+//plot(plotPMHL ? monthlyLow : na, title=' PML', style=plot.style_cross, linewidth=2, color=color.new(#C3A3D5,50), editable=true) 
+
+
+
+
+
+// <<< Plotting Prev DP, WP ,MP & YP>>>  
+
+
+plot(series=DP ? DCP_1 : na, title=' DCP', style=plot.style_circles, linewidth=1, color=color.new(#5db9e7, 0), editable=true)
+plot(series=DP ? DBP_1 : na, title=' DBP', style=plot.style_circles, linewidth=1, color=color.new(#5db9e7, 0), editable=true)
+plot(series=DP ? DTP_1 : na, title=' DTP', style=plot.style_circles, linewidth=1, color=color.new(#5db9e7, 20), editable=true)
+
+
+plot(series=WP ? WCP_1 : na, title=' WCP', style=plot.style_circles, linewidth=1, color=color.new(#FFB300, 0), editable=true)
+plot(series=WP ? WBP_1 : na, title=' WBP', style=plot.style_circles, linewidth=1, color=color.new(#FFB300, 0), editable=true)
+plot(series=WP ? WTP_1 : na, title=' WTP', style=plot.style_circles, linewidth=1, color=color.new(#FFB300, 0), editable=true)
+
+
+plot(series=MP ? MCP_1 : na, title=' MCP', style=plot.style_circles, linewidth=1, color=color.new(#C3A3D5, 0), editable=true)
+plot(series=MP ? MBP_1 : na, title=' MBP', style=plot.style_circles, linewidth=1, color=color.new(#C3A3D5, 0), editable=true)
+plot(series=MP ? MTP_1 : na, title=' MTP', style=plot.style_circles, linewidth=1, color=color.new(#C3A3D5, 0), editable=true)
+
+plot(series=YP ? YCP : na, title=' YCP', style=plot.style_circles, linewidth=1, color=color.new(#363a45, 0), editable=true)
+plot(series=YP ? YBP : na, title=' YBP', style=plot.style_circles, linewidth=1, color=color.new(#363a45, 0), editable=true)
+plot(series=YP ? YTP : na, title=' YTP', style=plot.style_circles, linewidth=1, color=color.new(#363a45, 0), editable=true)
+
+plot(series=MP1 ? hl2 : na, title ='Mid Point', color=color.new(color.white, 50), style=plot.style_circles)
+
+// <<< Plotting MA, Modified PEMA CO & VWAP >>> 
+
+
+plot(series= MA and MA1_C ? MA1_CAL : na, title= 'MA_20',   style=plot.style_line, color=MA1_COL, editable=true, linewidth=1)
+plot(series=DMA and MA2_C ? MA2_CAL : na, title= 'DSMA_10', style=plot.style_line, color=MA2_COL, editable=true, linewidth=2)
+plot(series=DMA and MA3_C ? MA3_CAL : na, title= 'DSMA_21', style=plot.style_line, color=MA3_COL, editable=true, linewidth=2)
+plot(series=DMA and MA4_C ? MA4_CAL : na, title= 'DEMA_23', style=plot.style_line, color=MA4_COL, editable=true, linewidth=2)
+plot(series=DMA and MA5_C ? MA5_CAL : na, title= 'DSMA_50', style=plot.style_line, color=MA5_COL, editable=true, linewidth=3)
+plot(series=DMA and MA6_C ? MA6_CAL : na, title= 'DEMA_65', style=plot.style_line, color=MA6_COL, editable=true, linewidth=3)
+plot(series=DMA and MA7_C ? MA7_CAL : na, title= 'DSMA_200',style=plot.style_line, color=MA7_COL, editable=true, linewidth=3)
+
+plotshape(series=M_PEMA_CO and M_PEMA_CO_13 ? PEMA13_LongSignal  : na, color=color.new(color.green, 50), location=location.belowbar, style=shape.circle, size=size.tiny,text='B13',textcolor=color.new(color.green,50))
+plotshape(series=M_PEMA_CO and M_PEMA_CO_13 ? PEMA13_ShortSignal : na, color=color.new(color.orange, 50), location=location.abovebar, style=shape.circle, size=size.tiny,text='S13',textcolor=color.new(color.orange,50))
+
+plotshape(series=M_PEMA_CO and M_PEMA_CO_35 ? PEMA35_LongSignal  : na, color=color.new(color.green, 50), location=location.belowbar, style=shape.circle, size=size.tiny,text='B35',textcolor=color.new(color.green,50))
+plotshape(series=M_PEMA_CO and M_PEMA_CO_35 ? PEMA35_ShortSignal : na, color=color.new(color.orange, 50), location=location.abovebar, style=shape.circle, size=size.tiny,text='S35',textcolor=color.new(color.orange,50))
+
+plotshape(series=M_PEMA_CO and M_PEMA_CO_58 ? PEMA58_LongSignal  : na, color=color.new(color.green, 50), location=location.belowbar, style=shape.circle, size=size.tiny,text='B58',textcolor=color.new(color.green,50))
+plotshape(series=M_PEMA_CO and M_PEMA_CO_58 ? PEMA58_ShortSignal : na, color=color.new(color.orange, 50), location=location.abovebar, style=shape.circle, size=size.tiny,text='S58',textcolor=color.new(color.orange,50))
+
+
+//plot(VWAP ? ta.vwap(VWAPval) : na, title='VWAP', style=plot.style_cross, color=color.new(#C3A3D5,20), editable=true, linewidth=2)  
+plot(VWAP ? vwapValue : na, title='VWAP', style=plot.style_circles, color=color.new(#C3A3D5,0), editable=true, linewidth=2)
+
+
+
+//CRS
+//plotshape(series=CRS ? longsignal  : na, color=color.new(color.blue, 0), location=location.belowbar, style=shape.triangleup, size=size.tiny)
+//plotshape(series=CRS ? shortsignal : na, color=color.new(color.red, 0), location=location.abovebar, style=shape.triangledown, size=size.tiny)
+
+//plotshape(series=CRS ? longsignal  : na, color=color.new(color.green, 0), location=location.bottom, style=shape.triangleup, size=size.tiny)
+//plotshape(series=CRS ? shortsignal : na, color=color.new(color.red, 0), location=location.bottom, style=shape.triangledown, size=size.tiny)
+
+//WRS
+//plotshape(series=CRS and l01 and lowleftempty ? Wlongsignal  : na, color=color.new(color.green, 50), location=location.belowbar, style=shape.triangleup, size=size.tiny,text='W',textcolor=color.green)
+//plotshape(series=CRS and l01 and highleftempty ? Wshortsignal : na, color=color.new(color.orange, 50), location=location.abovebar, style=shape.triangledown, size=size.tiny,text='W',textcolor=color.orange)
+
+//ERS
+//plotshape(series=CRS and l02 and lowleftempty ? Elongsignal  : na, color=color.new(color.green, 50), location=location.belowbar, style=shape.triangleup, size=size.tiny,text='E',textcolor=color.green)
+//plotshape(series=CRS and l02 and highleftempty ? Eshortsignal : na, color=color.new(color.orange, 50), location=location.abovebar, style=shape.triangledown, size=size.tiny,text='E',textcolor=color.orange)
+
+//ORS
+//plotshape(series=CRS and l03 and lowleftempty ? Olongsignal  : na, color=color.new(color.green, 50), location=location.belowbar, style=shape.triangleup, size=size.tiny,text='O',textcolor=color.green)
+//plotshape(series=CRS and l03 and highleftempty ? Oshortsignal : na, color=color.new(color.orange, 50), location=location.abovebar, style=shape.triangledown, size=size.tiny,text='O',textcolor=color.orange)
+
+//DRS
+//plotshape(series=CRS and l04 and lowleftempty ? Dlongsignal  : na, color=color.new(color.green, 50), location=location.belowbar, style=shape.triangleup, size=size.tiny,text='D',textcolor=color.green)
+//plotshape(series=CRS and l04 and highleftempty ? Dshortsignal : na, color=color.new(color.orange, 50), location=location.abovebar, style=shape.triangledown, size=size.tiny,text='D',textcolor=color.orange)
+
+//WRS
+//plotshape(series=CRS and l01 ? Wlongsignal  : na, color=color.new(color.green, 50), location=location.belowbar, style=shape.triangleup, size=size.tiny,text='W',textcolor=color.new(color.green,50))
+//plotshape(series=CRS and l01 ? Wshortsignal : na, color=color.new(color.orange, 50), location=location.abovebar, style=shape.triangledown, size=size.tiny,text='W',textcolor=color.new(color.orange,50))
+
+//ERS
+//plotshape(series=CRS and l02 ? Elongsignal  : na, color=color.new(color.green, 50), location=location.belowbar, style=shape.triangleup, size=size.tiny,text='E',textcolor=color.new(color.green,50))
+//plotshape(series=CRS and l02 ? Eshortsignal : na, color=color.new(color.orange, 50), location=location.abovebar, style=shape.triangledown, size=size.tiny,text='E',textcolor=color.new(color.orange,50))
+
+//ORS
+//plotshape(series=CRS and l03 ? Olongsignal  : na, color=color.new(color.green, 50), location=location.belowbar, style=shape.triangleup, size=size.tiny,text='O',textcolor=color.new(color.green,50))
+//plotshape(series=CRS and l03 ? Oshortsignal : na, color=color.new(color.orange, 50), location=location.abovebar, style=shape.triangledown, size=size.tiny,text='O',textcolor=color.new(color.orange,50))
+
+//DRS
+//plotshape(series=CRS and l04 ? Dlongsignal  : na, color=color.new(color.green, 50), location=location.belowbar, style=shape.triangleup, size=size.tiny,text='D',textcolor=color.new(color.green,50))
+//plotshape(series=CRS and l04 ? Dshortsignal : na, color=color.new(color.orange, 50), location=location.abovebar, style=shape.triangledown, size=size.tiny,text='D',textcolor=color.new(color.orange,50))
+
+//CPR Widhth Table
+var cpr_width_Table = table.new(position = TBL_POS, columns = 3, rows = 16, border_color = color.rgb(24, 25, 27), border_width = 1) ///Define the table
+
+
+
+if TBL==true
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 0, bgcolor = color.rgb(0, 0, 0), text_color = color.gray, text = "Desc")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 0, bgcolor = color.rgb(0, 0, 0), text_color = color.gray, text = "Value")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 0, bgcolor = color.rgb(0, 0, 0), text_color = color.gray, text = "Comments")
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 1, bgcolor = color.rgb(0, 0, 0), text_color = PP1_CPR_W_CURR_COL, text = "CURR CPR")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 1, bgcolor = color.rgb(0, 0, 0), text_color = PP1_CPR_W_CURR_COL, text = str.tostring(math.round(PP1_CPR_W_CURR,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 1, bgcolor = color.rgb(0, 0, 0), text_color = PP1_CPR_W_CURR_COL, text = str.tostring(PP1_CPR_W_CURR_DESC))
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 2, bgcolor = color.rgb(0, 0, 0), text_color = PP1_CPR_W_DEVL_COL, text = "DEVL CPR")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 2, bgcolor = color.rgb(0, 0, 0), text_color = PP1_CPR_W_DEVL_COL, text = str.tostring(math.round(PP1_CPR_W_DEVL,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 2, bgcolor = color.rgb(0, 0, 0), text_color = PP1_CPR_W_DEVL_COL, text = str.tostring(PP1_CPR_W_DEVL_DESC))
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 3, bgcolor = color.rgb(0, 0, 0), text_color = color.white, text = syminfo.ticker)
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 3, bgcolor = color.rgb(0, 0, 0), text_color = color.white, text = str.tostring(math.round(ticker_LTP,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 3, bgcolor = color.rgb(0, 0, 0), text_color = color.white, text = "LTP")
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 4, bgcolor = color.rgb(0, 0, 0), text_color = color.green, text = "TCP")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 4, bgcolor = color.rgb(0, 0, 0), text_color = PP1_TC_COL, text = str.tostring(math.round(tc,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 4, bgcolor = color.rgb(0, 0, 0), text_color = PP1_TC_COL, text = str.tostring(PP1_TC_S))
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 5, bgcolor = color.rgb(0, 0, 0), text_color = color.gray, text = "PIVOT")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 5, bgcolor = color.rgb(0, 0, 0), text_color = PP1_PI_COL, text = str.tostring(math.round(pivot,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 5, bgcolor = color.rgb(0, 0, 0), text_color = PP1_PI_COL, text = str.tostring(PP1_PI_S))
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 6, bgcolor = color.rgb(0, 0, 0), text_color = color.orange, text = "BCP")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 6, bgcolor = color.rgb(0, 0, 0), text_color = PP1_BC_COL, text = str.tostring(math.round(bc,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 6, bgcolor = color.rgb(0, 0, 0), text_color = PP1_BC_COL, text = str.tostring(PP1_BC_S))
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 7, bgcolor = color.rgb(0, 0, 0), text_color = PP1_SIGNAL_COL, text = "SIGNAL")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 7, bgcolor = color.rgb(0, 0, 0), text_color = PP1_SIGNAL_COL, text = str.tostring(math.round(PP1_SIGNAL_VAL,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 7, bgcolor = color.rgb(0, 0, 0), text_color = PP1_SIGNAL_COL, text = str.tostring(PP1_SIGNAL))
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 8, bgcolor = color.rgb(0, 0, 0), text_color = color.new(#C3A3D5,0), text = "VWAP")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 8, bgcolor = color.rgb(0, 0, 0), text_color = PP1_VWAP_COL, text = str.tostring(math.round(vwapValue1,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 8, bgcolor = color.rgb(0, 0, 0), text_color = PP1_VWAP_COL, text = str.tostring(PP1_VWAP))
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 9, bgcolor = color.rgb(0, 0, 0), text_color = MA1_COL, text = "MA_20")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 9, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA1_CAL_COL, text = str.tostring(math.round(MA1_CAL,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 9, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA1_CAL_COL, text = str.tostring(PP1_MA1_CAL))    
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 10, bgcolor = color.rgb(0, 0, 0), text_color = MA2_COL, text = "DSMA_10")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 10, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA2_CAL_COL, text = str.tostring(math.round(MA2_CAL,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 10, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA2_CAL_COL, text = str.tostring(PP1_MA2_CAL))    
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 11, bgcolor = color.rgb(0, 0, 0), text_color = MA3_COL, text = "DSMA_21")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 11, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA3_CAL_COL, text = str.tostring(math.round(MA3_CAL,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 11, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA3_CAL_COL, text = str.tostring(PP1_MA3_CAL))
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 12, bgcolor = color.rgb(0, 0, 0), text_color = MA4_COL, text = "DEMA_23")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 12, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA4_CAL_COL, text = str.tostring(math.round(MA4_CAL,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 12, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA4_CAL_COL, text = str.tostring(PP1_MA4_CAL))
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 13, bgcolor = color.rgb(0, 0, 0), text_color = MA5_COL, text = "DSMA_50")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 13, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA5_CAL_COL, text = str.tostring(math.round(MA5_CAL,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 13, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA5_CAL_COL, text = str.tostring(PP1_MA5_CAL))
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 14, bgcolor = color.rgb(0, 0, 0), text_color = MA6_COL, text = "DEMA_65")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 14, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA6_CAL_COL, text = str.tostring(math.round(MA6_CAL,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 14, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA6_CAL_COL, text = str.tostring(PP1_MA6_CAL))
+
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 0, row = 15, bgcolor = color.rgb(0, 0, 0), text_color = MA7_COL, text = "DSMA_200")
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 1, row = 15, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA7_CAL_COL, text = str.tostring(math.round(MA7_CAL,2)))
+    table.cell(table_id = cpr_width_Table, text_size = size.small, column = 2, row = 15, bgcolor = color.rgb(0, 0, 0), text_color = PP1_MA7_CAL_COL, text = str.tostring(PP1_MA7_CAL))
+
+//    table.cell(table_id = cpr_width_Table, column = 0, row = 0, bgcolor = color.black, text_color = color.gray, text = "CURR/DEVL")
+//    table.cell(table_id = cpr_width_Table, column = 1, row = 0, bgcolor = color.black, text_color = color.gray, text = "CPR Width Value")
+//    table.cell(table_id = cpr_width_Table, column = 2, row = 0, bgcolor = color.black, text_color = color.gray, text = "CPR Width Desc")
+//    table.cell(table_id = cpr_width_Table, column = 0, row = 1, bgcolor = color.black, text_color = PP1_CPR_W_CURR_COL, text = "CURR")
+//    table.cell(table_id = cpr_width_Table, column = 1, row = 1, bgcolor = color.black, text_color = PP1_CPR_W_CURR_COL, text = str.tostring(math.round(PP1_CPR_W_CURR,2)))
+//   table.cell(table_id = cpr_width_Table, column = 2, row = 1, bgcolor = color.black, text_color = PP1_CPR_W_CURR_COL, text = str.tostring(PP1_CPR_W_CURR_DESC))
+//    table.cell(table_id = cpr_width_Table, column = 0, row = 2, bgcolor = color.black, text_color = PP1_CPR_W_DEVL_COL, text = "DEVL")
+//    table.cell(table_id = cpr_width_Table, column = 1, row = 2, bgcolor = color.black, text_color = PP1_CPR_W_DEVL_COL, text = str.tostring(math.round(PP1_CPR_W_DEVL,2)))
+//    table.cell(table_id = cpr_width_Table, column = 2, row = 2, bgcolor = color.black, text_color = PP1_CPR_W_DEVL_COL, text = str.tostring(PP1_CPR_W_DEVL_DESC))
+
+
+//Ichimoku
+
+donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
+conversionLine = donchian(9)
+baseLine = donchian(26)
+leadLine1 = math.avg(conversionLine, baseLine)
+leadLine2 = donchian(52)
+//plot(conversionLine, color=#2962FF, title="Conversion Line")
+//plot(baseLine, color=#B71C1C, title="Base Line")
+//plot(close, offset = -displacement + 1, color=#43A047, title="Lagging Span")
+
+
+//BB
+
+//length = input.int(20, minval=1)
+//src = input(close, title="Source")
+//mult = input.float(1.0, minval=0.001, maxval=50, title="StdDev")
+basis = ta.sma(close, 10)
+dev = BB_DEV * ta.stdev(close, 10)
+upper = basis + dev
+lower = basis - dev
+//offset = input.int(0, "Offset", minval = -500, maxval = 500)
+plot(BB ? basis : na, title="Basis", color=#FF6D00, offset = 0)
+BB_p1 = plot(BB ? upper : na, title="Upper", color=#ffeb3b, offset = 0)
+BB_p2 = plot(BB ? lower : na, title="Lower", color=#ffeb3b, offset = 0)
+fill(BB_p1, BB_p2, title = "Background", color=color.rgb(33, 150, 243, 95))
+
+//Ichimoku
+Ichimoku_p1 = plot(Ichimoku ? leadLine1 :na, offset = 26 - 1, color=#A5D6A7, title="Leading Span A")
+Ichimoku_p2 = plot(Ichimoku ? leadLine2 :na, offset = 26 - 1, color=#EF9A9A, title="Leading Span B")
+fill(Ichimoku_p1 , Ichimoku_p2 , color = leadLine1 > leadLine2 ? color.rgb(67, 160, 71, 90) : color.rgb(244, 67, 54, 90))
+
+
+//Pivot Points
+
+PP12 =  " Pivot Points High and Low "
+
+lengthGroupTitle = "LENGTH LEFT / RIGHT"
+colorGroupTitle = "Text Color / Label Color"
+leftLenH = input.int(title="Pivot High", defval=10, minval=1, inline="Pivot High", group=lengthGroupTitle)
+rightLenH = input.int(title="/", defval=10, minval=1, inline="Pivot High", group=lengthGroupTitle)
+textColorH = input(title="Pivot High", defval=#000000, inline="Pivot High", group=colorGroupTitle)
+labelColorH = input(title="", defval=#2962ff, inline="Pivot High", group=colorGroupTitle)
+
+leftLenL = input.int(title="Pivot Low", defval=10, minval=1, inline="Pivot Low", group=lengthGroupTitle)
+rightLenL = input.int(title="/", defval=10, minval=1, inline="Pivot Low", group=lengthGroupTitle)
+textColorL = input(title="Pivot Low", defval=#000000, inline="Pivot Low", group=colorGroupTitle)
+labelColorL = input(title="", defval=#e040fb, inline="Pivot Low", group=colorGroupTitle)
+
+ph = ta.pivothigh(leftLenH, rightLenH)
+pl = ta.pivotlow(leftLenL, rightLenL)
+
+drawLabel(_offset, _pivot, _style, _color, _textColor) =>
+    if not na(_pivot)
+        label.new(bar_index[_offset], _pivot, str.tostring(_pivot, format.mintick), style=_style, color=_color, textcolor=_textColor)
+
+drawLabel(rightLenH, PP ? ph : na, label.style_label_down, labelColorH, textColorH)
+drawLabel(rightLenL, PP ? pl : na, label.style_label_up, labelColorL, textColorL)
